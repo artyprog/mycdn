@@ -162,6 +162,8 @@ Error message and password prompt
 
 <li>$:/state/image-picker/system-277049172</li>
 
+<li>$:/state/showeditpreview</li>
+
 <li>$:/state/sidebar</li>
 
 <li>$:/state/tab--1963855381</li>
@@ -242,6 +244,8 @@ Error message and password prompt
 
 <li>Command Line Reference</li>
 
+<li>Draft of 'Image identification'</li>
+
 <li>Evolution of Windows Filesystems</li>
 
 <li>Extract filesystem bodyfile from VirtualBox VM</li>
@@ -259,6 +263,8 @@ Error message and password prompt
 <li>icat</li>
 
 <li>Identification of Malicious System and User Activity</li>
+
+<li>Image identification</li>
 
 <li>Incident Response in an Enterprise Environment</li>
 
@@ -8595,10 +8601,15 @@ Error message and password prompt
 <div created="20170615090517790" modified="20170616141847140" title="$:/DefaultTiddlers">
 <pre>[[InfoSec KB]]</pre>
 </div>
-<div status="complete" title="$:/Import">
-<pre>The following tiddlers were imported:
-
-# [[Windows-Time-STDINFO.jpg]]</pre>
+<div plugin-type="import" status="pending" title="$:/Import" type="application/json">
+<pre>{
+    &quot;tiddlers&quot;: {
+        &quot;Untitled&quot;: {
+            &quot;title&quot;: &quot;Untitled&quot;,
+            &quot;text&quot;: &quot;Volatility Cheat Sheet&quot;
+        }
+    }
+}</pre>
 </div>
 <div title="$:/isEncrypted">
 <pre>no</pre>
@@ -8611,6 +8622,9 @@ Error message and password prompt
 </div>
 <div created="20170615102208537" modified="20170615102234824" title="$:/state/image-picker/system-277049172">
 <pre>show</pre>
+</div>
+<div created="20170622141811394" modified="20170622141814297" title="$:/state/showeditpreview">
+<pre>no</pre>
 </div>
 <div created="20170615135157330" modified="20170615135718818" title="$:/state/sidebar">
 <pre>yes</pre>
@@ -8648,8 +8662,8 @@ Error message and password prompt
 <div created="20170621151939779" modified="20170622093240437" title="$:/state/toc/TableOfContents-Cheat sheets--81657105">
 <pre>close</pre>
 </div>
-<div created="20170622095546098" modified="20170622095855558" title="$:/state/toc/TableOfContents-GCFA Exam--81657105">
-<pre>close</pre>
+<div created="20170622095546098" modified="20170622102747797" title="$:/state/toc/TableOfContents-GCFA Exam--81657105">
+<pre>open</pre>
 </div>
 <div created="20170615100925086" modified="20170622095856531" title="$:/state/toc/TableOfContents-SANS FOR508--81657105">
 <pre>close</pre>
@@ -8687,7 +8701,7 @@ Error message and password prompt
 <div created="20170615144442850" modified="20170616094800637" title="$:/state/toc/TableOfContents/Tools-SuperTimeline--81657105">
 <pre>open</pre>
 </div>
-<div list="[[GCFA Exam]] [[Volatile Artifact Analysis]]" title="$:/StoryList">
+<div list="[[Volatility Cheat Sheet]] [[Draft of 'Image identification']]" title="$:/StoryList">
 <pre></pre>
 </div>
 <div created="20170615095643495" list="$:/core/ui/SideBar/Open $:/core/ui/SideBar/Recent $:/core/ui/SideBar/Tools $:/core/ui/SideBar/More" modified="20170615095643495" title="$:/tags/SideBar">
@@ -9453,6 +9467,107 @@ ls | pf -pipe -csv &gt;/cases/prefetch.csv
 ```
 </pre>
 </div>
+<div created="20170623093600245" draft.of="Image identification" draft.title="Image identification" modified="20170623093757152" tags="volatility [[Volatility Cheat Sheet]]" title="Draft of 'Image identification'">
+<pre>!!imageinfo
+
+For a high level summary of the memory sample you’re analyzing, use the imageinfo command. Most often this command is used to identify the operating system, service pack, and hardware architecture (32 or 64 bit), but it also contains other useful information such as the DTB address and time the sample was collected.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw imageinfo
+Volatility Foundation Volatility Framework 2.4
+Determining profile based on KDBG search...
+Suggested Profile(s) : Win7SP0x64, Win7SP1x64, Win2008R2SP0x64, Win2008R2SP1x64
+                     AS Layer1 : AMD64PagedMemory (Kernel AS)
+                     AS Layer2 : FileAddressSpace (/Users/Michael/Desktop/win7_trial_64bit.raw)
+                      PAE type : PAE
+                           DTB : 0x187000L
+                          KDBG : 0xf80002803070
+          Number of Processors : 1
+     Image Type (Service Pack) : 0
+                KPCR for CPU 0 : 0xfffff80002804d00L
+             KUSER_SHARED_DATA : 0xfffff78000000000L
+           Image date and time : 2012-02-22 11:29:02 UTC+0000
+     Image local date and time : 2012-02-22 03:29:02 -0800
+```
+
+The imageinfo output tells you the suggested profile that you should pass as the parameter to --profile=PROFILE  when using other plugins. There may be more than one profile suggestion  if profiles are closely related. It also prints the address of the KDBG  (short for _KDDEBUGGER_DATA64) structure that will be used by plugins like pslist and modules  to find the process and module list heads, respectively. In some cases,  especially larger memory samples, there may be multiple KDBG  structures. Similarly, if there are multiple processors, you'll see the  KPCR address and CPU number for each one.
+
+Plugins automatically scan for the KPCR and KDBG values when they need them. However, you can specify the values directly for any plugin by providing --kpcr=ADDRESS or --kdbg=ADDRESS.  By supplying the profile and KDBG (or failing that KPCR) to other  Volatility commands, you'll get the most accurate and fastest results  possible.
+Note: The imageinfo plugin will not  work on hibernation files unless the correct profile is given in  advance.  This is because important structure definitions vary between  different operating systems.
+
+
+!! kdbgscan
+
+As opposed to imageinfo which simply provides profile suggestions, kdbgscan is designed to positively identify the correct profile and the correct KDBG address (if there happen to be multiple). This plugin scans for the KDBGHeader signatures linked to Volatility profiles and applies sanity checks to reduce false positives. The verbosity of the output and number of sanity checks that can be performed depends on whether Volatility can find a DTB, so if you already know the correct profile (or if you have a profile suggestion from imageinfo), then make sure you use it.
+Here’s an example scenario of when this plugin can be useful. You have a memory sample that you believe to be Windows 2003 SP2 x64, but pslist doesn’t show any processes. The pslist plugin relies on finding the process list head which is pointed to by KDBG. However, the plugin takes the first KDBG found in the memory sample, which is not always the best  one. You may run into this problem if a KDBG with an invalid  PsActiveProcessHead pointer is found earlier in a sample (i.e. at a  lower physical offset) than the valid KDBG.
+
+Notice below how kdbgscan picks up two KDBG structures: an invalid one (with 0 processes and 0 modules) is found first at 0xf80001172cb0 and a valid one (with 37 processes and 116 modules) is found next at 0xf80001175cf0. In order to &quot;fix&quot; pslist for this sample, you would simply need to supply the --kdbg=0xf80001175cf0 to the plist plugin.
+
+```
+$ vol.py -f Win2K3SP2x64-6f1bedec.vmem --profile=Win2003SP2x64 kdbgscan
+Volatility Foundation Volatility Framework 2.4
+**************************************************
+Instantiating KDBG using: Kernel AS Win2003SP2x64 (5.2.3791 64bit)
+Offset (V)                    : 0xf80001172cb0
+Offset (P)                    : 0x1172cb0
+KDBG owner tag check          : True
+Profile suggestion (KDBGHeader): Win2003SP2x64
+Version64                     : 0xf80001172c70 (Major: 15, Minor: 3790)
+Service Pack (CmNtCSDVersion) : 0
+Build string (NtBuildLab)     : T?
+PsActiveProcessHead           : 0xfffff800011947f0 (0 processes)
+PsLoadedModuleList            : 0xfffff80001197ac0 (0 modules)
+KernelBase                    : 0xfffff80001000000 (Matches MZ: True)
+Major (OptionalHeader)        : 5
+Minor (OptionalHeader)        : 2
+**************************************************
+Instantiating KDBG using: Kernel AS Win2003SP2x64 (5.2.3791 64bit)
+Offset (V)                    : 0xf80001175cf0
+Offset (P)                    : 0x1175cf0
+KDBG owner tag check          : True
+Profile suggestion (KDBGHeader): Win2003SP2x64
+Version64                     : 0xf80001175cb0 (Major: 15, Minor: 3790)
+Service Pack (CmNtCSDVersion) : 2
+Build string (NtBuildLab)     : 3790.srv03_sp2_rtm.070216-1710
+PsActiveProcessHead           : 0xfffff800011977f0 (37 processes)
+PsLoadedModuleList            : 0xfffff8000119aae0 (116 modules)
+KernelBase                    : 0xfffff80001000000 (Matches MZ: True)
+Major (OptionalHeader)        : 5
+Minor (OptionalHeader)        : 2
+KPCR                          : 0xfffff80001177000 (CPU 0)
+```
+
+!! kpcrscan
+
+Use this command to scan for potential KPCR structures by checking for the self-referencing members as described by Finding Object Roots in Vista. On a multi-core system, each processor has its own KPCR. Therefore, you’ll see details for each processor, including IDT and GDT address; current, idle, and next threads; CPU number, vendor &amp; speed; and CR3 value.
+
+```
+$ vol.py -f dang_win7_x64.raw --profile=Win7SP1x64 kpcrscan
+Volatility Foundation Volatility Framework 2.4
+**************************************************
+Offset (V)                    : 0xf800029ead00
+Offset (P)                    : 0x29ead00
+KdVersionBlock                : 0x0
+IDT                           : 0xfffff80000b95080
+GDT                           : 0xfffff80000b95000
+CurrentThread                 : 0xfffffa800cf694d0 TID 2148 (kd.exe:2964)
+IdleThread                    : 0xfffff800029f8c40 TID 0 (Idle:0)
+Details                       : CPU 0 (GenuineIntel @ 2128 MHz)
+CR3/DTB                       : 0x1dcec000
+**************************************************
+Offset (V)                    : 0xf880009e7000
+Offset (P)                    : 0x4d9e000
+KdVersionBlock                : 0x0
+IDT                           : 0xfffff880009f2540
+GDT                           : 0xfffff880009f24c0
+CurrentThread                 : 0xfffffa800cf694d0 TID 2148 (kd.exe:2964)
+IdleThread                    : 0xfffff880009f1f40 TID 0 (Idle:0)
+Details                       : CPU 1 (GenuineIntel @ 2220 MHz)
+CR3/DTB                       : 0x1dcec000
+```
+
+If the KdVersionBlock is not null, then it may be  possible to find the machine's KDBG address via the KPCR. In fact, the  backup method of finding KDBG used by plugins such as pslist is to leverage kpcrscan and then call the KPCR.get_kdbg() API function.</pre>
+</div>
 <div created="20170616112642334" modified="20170616114935746" tags="[[Anti-Forensics Detection]]" title="Evolution of Windows Filesystems">
 <pre>* FAT12/16: MS-DOS, Win95/98/NT/2000
 * FAT32: Win95,Win2000,WinXP/2003/Vista/Win7/Win8/Win10
@@ -9629,12 +9744,35 @@ rip.pl -r NTUSER.DAT -p wordwheelquery &gt; /cases/win7-32-nromanoff-c-drive/wor
 cat /cases/win7-32-nromanoff-c-drive/wordwheelquery.txt
 ```</pre>
 </div>
-<div created="20170622093241659" modified="20170622095442691" tags="TableOfContents" title="GCFA Exam">
+<div created="20170622093241659" modified="20170622102723118" tags="TableOfContents" title="GCFA Exam">
 <pre>!! Requirements
 * 1 proctored exam
 * 115 questions
 * Time limit of 3 hours
 * Minimum Passing Score of 71%
+
+
+!! Certification Exam Format
+
+!!! One Exam Format
+
+All GIAC certification attempts are comprised of a single exam that will cover all certification objectives. Certification exams are 2-5 hours in length, depending on the specific certification attempt. For details on individual certifications, go to http://www.giac.org/certifications/categories 
+
+!!! Open Book Guidelines
+GIAC exams are open book format. Workstation space may be as limited as 4 feet (1.2 meters) wide, so please plan accordingly. You may bring an armful of hardcopy books and notes into the testing room. However, hardcopy reference materials having the appearance of practice test and/or exam questions and answers are strictly prohibited.
+
+    You will be provided with the following:
+
+        * A computer to access the exam
+        * An erasable note board and pen
+        * An onscreen calculator, should you need one during the exam.
+
+All other personal belongings are not permitted into the testing room. This includes wallets, purses, hats (and other head coverings), bags and coats. ''Weapons are not allowed on testing center premises. Please leave weapons (guns, knives, etc.) at home or stored securely in your vehicle.'' GIAC exams are not open internet or open computer. You will not be able to access anything stored electronically on any computer during the exam such as PDF or Word documents. Electronic devices including but not limited to extra computers, CD-ROM, USB flash drives, cell/smart phones, watches and cameras are strictly prohibited from being accessed during the exam. Personal writing implements are also not allowed.
+
+!!! Skipping Questions and Taking Scheduled Break
+You have the option to skip a limited number of questions during your exam. These questions will not be displayed again until you are close to the end of the exam. You also have the option to take one 15-minute break during the course of your exam. Please note, however, that any questions you skip during the exam must be answered by clicking the &quot;Answer Skipped&quot; button BEFORE you take a break. 
+
+
 
 !! Topics
 
@@ -9716,13 +9854,114 @@ ARGUMENTS
 <div created="20170622094100334" modified="20170622094104872" tags="[[GCFA Exam]]" title="Identification of Malicious System and User Activity">
 <pre></pre>
 </div>
+<div created="20170623093600245" modified="20170623093732722" tags="[[Volatility Cheat Sheet]]" title="Image identification">
+<pre>!!imageinfo
+
+For a high level summary of the memory sample you’re analyzing, use the imageinfo command. Most often this command is used to identify the operating system, service pack, and hardware architecture (32 or 64 bit), but it also contains other useful information such as the DTB address and time the sample was collected.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw imageinfo
+Volatility Foundation Volatility Framework 2.4
+Determining profile based on KDBG search...
+Suggested Profile(s) : Win7SP0x64, Win7SP1x64, Win2008R2SP0x64, Win2008R2SP1x64
+                     AS Layer1 : AMD64PagedMemory (Kernel AS)
+                     AS Layer2 : FileAddressSpace (/Users/Michael/Desktop/win7_trial_64bit.raw)
+                      PAE type : PAE
+                           DTB : 0x187000L
+                          KDBG : 0xf80002803070
+          Number of Processors : 1
+     Image Type (Service Pack) : 0
+                KPCR for CPU 0 : 0xfffff80002804d00L
+             KUSER_SHARED_DATA : 0xfffff78000000000L
+           Image date and time : 2012-02-22 11:29:02 UTC+0000
+     Image local date and time : 2012-02-22 03:29:02 -0800
+```
+
+The imageinfo output tells you the suggested profile that you should pass as the parameter to --profile=PROFILE  when using other plugins. There may be more than one profile suggestion  if profiles are closely related. It also prints the address of the KDBG  (short for _KDDEBUGGER_DATA64) structure that will be used by plugins like pslist and modules  to find the process and module list heads, respectively. In some cases,  especially larger memory samples, there may be multiple KDBG  structures. Similarly, if there are multiple processors, you'll see the  KPCR address and CPU number for each one.
+
+Plugins automatically scan for the KPCR and KDBG values when they need them. However, you can specify the values directly for any plugin by providing --kpcr=ADDRESS or --kdbg=ADDRESS.  By supplying the profile and KDBG (or failing that KPCR) to other  Volatility commands, you'll get the most accurate and fastest results  possible.
+Note: The imageinfo plugin will not  work on hibernation files unless the correct profile is given in  advance.  This is because important structure definitions vary between  different operating systems.
+
+
+!! kdbgscan
+
+As opposed to imageinfo which simply provides profile suggestions, kdbgscan is designed to positively identify the correct profile and the correct KDBG address (if there happen to be multiple). This plugin scans for the KDBGHeader signatures linked to Volatility profiles and applies sanity checks to reduce false positives. The verbosity of the output and number of sanity checks that can be performed depends on whether Volatility can find a DTB, so if you already know the correct profile (or if you have a profile suggestion from imageinfo), then make sure you use it.
+Here’s an example scenario of when this plugin can be useful. You have a memory sample that you believe to be Windows 2003 SP2 x64, but pslist doesn’t show any processes. The pslist plugin relies on finding the process list head which is pointed to by KDBG. However, the plugin takes the first KDBG found in the memory sample, which is not always the best  one. You may run into this problem if a KDBG with an invalid  PsActiveProcessHead pointer is found earlier in a sample (i.e. at a  lower physical offset) than the valid KDBG.
+
+Notice below how kdbgscan picks up two KDBG structures: an invalid one (with 0 processes and 0 modules) is found first at 0xf80001172cb0 and a valid one (with 37 processes and 116 modules) is found next at 0xf80001175cf0. In order to &quot;fix&quot; pslist for this sample, you would simply need to supply the --kdbg=0xf80001175cf0 to the plist plugin.
+
+```
+$ vol.py -f Win2K3SP2x64-6f1bedec.vmem --profile=Win2003SP2x64 kdbgscan
+Volatility Foundation Volatility Framework 2.4
+**************************************************
+Instantiating KDBG using: Kernel AS Win2003SP2x64 (5.2.3791 64bit)
+Offset (V)                    : 0xf80001172cb0
+Offset (P)                    : 0x1172cb0
+KDBG owner tag check          : True
+Profile suggestion (KDBGHeader): Win2003SP2x64
+Version64                     : 0xf80001172c70 (Major: 15, Minor: 3790)
+Service Pack (CmNtCSDVersion) : 0
+Build string (NtBuildLab)     : T?
+PsActiveProcessHead           : 0xfffff800011947f0 (0 processes)
+PsLoadedModuleList            : 0xfffff80001197ac0 (0 modules)
+KernelBase                    : 0xfffff80001000000 (Matches MZ: True)
+Major (OptionalHeader)        : 5
+Minor (OptionalHeader)        : 2
+**************************************************
+Instantiating KDBG using: Kernel AS Win2003SP2x64 (5.2.3791 64bit)
+Offset (V)                    : 0xf80001175cf0
+Offset (P)                    : 0x1175cf0
+KDBG owner tag check          : True
+Profile suggestion (KDBGHeader): Win2003SP2x64
+Version64                     : 0xf80001175cb0 (Major: 15, Minor: 3790)
+Service Pack (CmNtCSDVersion) : 2
+Build string (NtBuildLab)     : 3790.srv03_sp2_rtm.070216-1710
+PsActiveProcessHead           : 0xfffff800011977f0 (37 processes)
+PsLoadedModuleList            : 0xfffff8000119aae0 (116 modules)
+KernelBase                    : 0xfffff80001000000 (Matches MZ: True)
+Major (OptionalHeader)        : 5
+Minor (OptionalHeader)        : 2
+KPCR                          : 0xfffff80001177000 (CPU 0)
+```
+
+!! kpcrscan
+
+Use this command to scan for potential KPCR structures by checking for the self-referencing members as described by Finding Object Roots in Vista. On a multi-core system, each processor has its own KPCR. Therefore, you’ll see details for each processor, including IDT and GDT address; current, idle, and next threads; CPU number, vendor &amp; speed; and CR3 value.
+
+```
+$ vol.py -f dang_win7_x64.raw --profile=Win7SP1x64 kpcrscan
+Volatility Foundation Volatility Framework 2.4
+**************************************************
+Offset (V)                    : 0xf800029ead00
+Offset (P)                    : 0x29ead00
+KdVersionBlock                : 0x0
+IDT                           : 0xfffff80000b95080
+GDT                           : 0xfffff80000b95000
+CurrentThread                 : 0xfffffa800cf694d0 TID 2148 (kd.exe:2964)
+IdleThread                    : 0xfffff800029f8c40 TID 0 (Idle:0)
+Details                       : CPU 0 (GenuineIntel @ 2128 MHz)
+CR3/DTB                       : 0x1dcec000
+**************************************************
+Offset (V)                    : 0xf880009e7000
+Offset (P)                    : 0x4d9e000
+KdVersionBlock                : 0x0
+IDT                           : 0xfffff880009f2540
+GDT                           : 0xfffff880009f24c0
+CurrentThread                 : 0xfffffa800cf694d0 TID 2148 (kd.exe:2964)
+IdleThread                    : 0xfffff880009f1f40 TID 0 (Idle:0)
+Details                       : CPU 1 (GenuineIntel @ 2220 MHz)
+CR3/DTB                       : 0x1dcec000
+```
+
+If the KdVersionBlock is not null, then it may be  possible to find the machine's KDBG address via the KPCR. In fact, the  backup method of finding KDBG used by plugins such as pslist is to leverage kpcrscan and then call the KPCR.get_kdbg() API function.</pre>
+</div>
 <div created="20170622094241266" modified="20170622094244231" tags="[[GCFA Exam]]" title="Incident Response in an Enterprise Environment">
 <pre></pre>
 </div>
 <div created="20170622094305858" modified="20170622094308416" tags="[[GCFA Exam]]" title="Incident Response Process and Framework">
 <pre></pre>
 </div>
-<div created="20170615090535751" list="0" modified="20170616141833811" title="InfoSec KB">
+<div created="20170615090535751" list="0" modified="20170623093835553" title="InfoSec KB">
 <pre>&lt;div class=&quot;tc-table-of-contents&quot;&gt;
 
 &lt;&lt;toc-selective-expandable 'TableOfContents'&gt;&gt;
@@ -10786,8 +11025,12 @@ Options:
 		yarascan       	Scan process or kernel memory with Yara signatures
 ```</pre>
 </div>
-<div created="20170619140332994" modified="20170619140347191" tags="[[Cheat sheets]]" title="Volatility Cheat Sheet">
-<pre></pre>
+<div created="20170619140332994" modified="20170623093844008" tags="[[Cheat sheets]]" title="Volatility Cheat Sheet" type="text/vnd.tiddlywiki">
+<pre>&lt;div class=&quot;tc-table-of-contents&quot;&gt;
+
+&lt;&lt;toc-selective-expandable 'Volatility Cheat Sheet'&gt;&gt;
+
+&lt;/div&gt;</pre>
 </div>
 <div created="20170615140449071" modified="20170615140932991" tags="[[Memory Forensics]]" title="Volatility Memory Analysis">
 <pre>!! Image identification

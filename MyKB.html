@@ -244,8 +244,6 @@ Error message and password prompt
 
 <li>Command Line Reference</li>
 
-<li>Draft of 'Image identification'</li>
-
 <li>Evolution of Windows Filesystems</li>
 
 <li>Extract filesystem bodyfile from VirtualBox VM</li>
@@ -295,6 +293,8 @@ Error message and password prompt
 <li>Plaso</li>
 
 <li>Prefetch Carving</li>
+
+<li>Processes and DLLs</li>
 
 <li>psort.py</li>
 
@@ -8662,7 +8662,7 @@ Error message and password prompt
 <div created="20170621151939779" modified="20170622093240437" title="$:/state/toc/TableOfContents-Cheat sheets--81657105">
 <pre>close</pre>
 </div>
-<div created="20170622095546098" modified="20170622102747797" title="$:/state/toc/TableOfContents-GCFA Exam--81657105">
+<div created="20170622095546098" modified="20170623094339688" title="$:/state/toc/TableOfContents-GCFA Exam--81657105">
 <pre>open</pre>
 </div>
 <div created="20170615100925086" modified="20170622095856531" title="$:/state/toc/TableOfContents-SANS FOR508--81657105">
@@ -8701,7 +8701,7 @@ Error message and password prompt
 <div created="20170615144442850" modified="20170616094800637" title="$:/state/toc/TableOfContents/Tools-SuperTimeline--81657105">
 <pre>open</pre>
 </div>
-<div list="[[Volatility Cheat Sheet]] [[Draft of 'Image identification']]" title="$:/StoryList">
+<div list="[[Volatile Artifact Analysis]] [[Volatile Data Collection]] [[Volatility Cheat Sheet]] [[Processes and DLLs]] [[Image identification]]" title="$:/StoryList">
 <pre></pre>
 </div>
 <div created="20170615095643495" list="$:/core/ui/SideBar/Open $:/core/ui/SideBar/Recent $:/core/ui/SideBar/Tools $:/core/ui/SideBar/More" modified="20170615095643495" title="$:/tags/SideBar">
@@ -9467,107 +9467,6 @@ ls | pf -pipe -csv &gt;/cases/prefetch.csv
 ```
 </pre>
 </div>
-<div created="20170623093600245" draft.of="Image identification" draft.title="Image identification" modified="20170623093757152" tags="volatility [[Volatility Cheat Sheet]]" title="Draft of 'Image identification'">
-<pre>!!imageinfo
-
-For a high level summary of the memory sample you’re analyzing, use the imageinfo command. Most often this command is used to identify the operating system, service pack, and hardware architecture (32 or 64 bit), but it also contains other useful information such as the DTB address and time the sample was collected.
-
-```
-$ vol.py -f ~/Desktop/win7_trial_64bit.raw imageinfo
-Volatility Foundation Volatility Framework 2.4
-Determining profile based on KDBG search...
-Suggested Profile(s) : Win7SP0x64, Win7SP1x64, Win2008R2SP0x64, Win2008R2SP1x64
-                     AS Layer1 : AMD64PagedMemory (Kernel AS)
-                     AS Layer2 : FileAddressSpace (/Users/Michael/Desktop/win7_trial_64bit.raw)
-                      PAE type : PAE
-                           DTB : 0x187000L
-                          KDBG : 0xf80002803070
-          Number of Processors : 1
-     Image Type (Service Pack) : 0
-                KPCR for CPU 0 : 0xfffff80002804d00L
-             KUSER_SHARED_DATA : 0xfffff78000000000L
-           Image date and time : 2012-02-22 11:29:02 UTC+0000
-     Image local date and time : 2012-02-22 03:29:02 -0800
-```
-
-The imageinfo output tells you the suggested profile that you should pass as the parameter to --profile=PROFILE  when using other plugins. There may be more than one profile suggestion  if profiles are closely related. It also prints the address of the KDBG  (short for _KDDEBUGGER_DATA64) structure that will be used by plugins like pslist and modules  to find the process and module list heads, respectively. In some cases,  especially larger memory samples, there may be multiple KDBG  structures. Similarly, if there are multiple processors, you'll see the  KPCR address and CPU number for each one.
-
-Plugins automatically scan for the KPCR and KDBG values when they need them. However, you can specify the values directly for any plugin by providing --kpcr=ADDRESS or --kdbg=ADDRESS.  By supplying the profile and KDBG (or failing that KPCR) to other  Volatility commands, you'll get the most accurate and fastest results  possible.
-Note: The imageinfo plugin will not  work on hibernation files unless the correct profile is given in  advance.  This is because important structure definitions vary between  different operating systems.
-
-
-!! kdbgscan
-
-As opposed to imageinfo which simply provides profile suggestions, kdbgscan is designed to positively identify the correct profile and the correct KDBG address (if there happen to be multiple). This plugin scans for the KDBGHeader signatures linked to Volatility profiles and applies sanity checks to reduce false positives. The verbosity of the output and number of sanity checks that can be performed depends on whether Volatility can find a DTB, so if you already know the correct profile (or if you have a profile suggestion from imageinfo), then make sure you use it.
-Here’s an example scenario of when this plugin can be useful. You have a memory sample that you believe to be Windows 2003 SP2 x64, but pslist doesn’t show any processes. The pslist plugin relies on finding the process list head which is pointed to by KDBG. However, the plugin takes the first KDBG found in the memory sample, which is not always the best  one. You may run into this problem if a KDBG with an invalid  PsActiveProcessHead pointer is found earlier in a sample (i.e. at a  lower physical offset) than the valid KDBG.
-
-Notice below how kdbgscan picks up two KDBG structures: an invalid one (with 0 processes and 0 modules) is found first at 0xf80001172cb0 and a valid one (with 37 processes and 116 modules) is found next at 0xf80001175cf0. In order to &quot;fix&quot; pslist for this sample, you would simply need to supply the --kdbg=0xf80001175cf0 to the plist plugin.
-
-```
-$ vol.py -f Win2K3SP2x64-6f1bedec.vmem --profile=Win2003SP2x64 kdbgscan
-Volatility Foundation Volatility Framework 2.4
-**************************************************
-Instantiating KDBG using: Kernel AS Win2003SP2x64 (5.2.3791 64bit)
-Offset (V)                    : 0xf80001172cb0
-Offset (P)                    : 0x1172cb0
-KDBG owner tag check          : True
-Profile suggestion (KDBGHeader): Win2003SP2x64
-Version64                     : 0xf80001172c70 (Major: 15, Minor: 3790)
-Service Pack (CmNtCSDVersion) : 0
-Build string (NtBuildLab)     : T?
-PsActiveProcessHead           : 0xfffff800011947f0 (0 processes)
-PsLoadedModuleList            : 0xfffff80001197ac0 (0 modules)
-KernelBase                    : 0xfffff80001000000 (Matches MZ: True)
-Major (OptionalHeader)        : 5
-Minor (OptionalHeader)        : 2
-**************************************************
-Instantiating KDBG using: Kernel AS Win2003SP2x64 (5.2.3791 64bit)
-Offset (V)                    : 0xf80001175cf0
-Offset (P)                    : 0x1175cf0
-KDBG owner tag check          : True
-Profile suggestion (KDBGHeader): Win2003SP2x64
-Version64                     : 0xf80001175cb0 (Major: 15, Minor: 3790)
-Service Pack (CmNtCSDVersion) : 2
-Build string (NtBuildLab)     : 3790.srv03_sp2_rtm.070216-1710
-PsActiveProcessHead           : 0xfffff800011977f0 (37 processes)
-PsLoadedModuleList            : 0xfffff8000119aae0 (116 modules)
-KernelBase                    : 0xfffff80001000000 (Matches MZ: True)
-Major (OptionalHeader)        : 5
-Minor (OptionalHeader)        : 2
-KPCR                          : 0xfffff80001177000 (CPU 0)
-```
-
-!! kpcrscan
-
-Use this command to scan for potential KPCR structures by checking for the self-referencing members as described by Finding Object Roots in Vista. On a multi-core system, each processor has its own KPCR. Therefore, you’ll see details for each processor, including IDT and GDT address; current, idle, and next threads; CPU number, vendor &amp; speed; and CR3 value.
-
-```
-$ vol.py -f dang_win7_x64.raw --profile=Win7SP1x64 kpcrscan
-Volatility Foundation Volatility Framework 2.4
-**************************************************
-Offset (V)                    : 0xf800029ead00
-Offset (P)                    : 0x29ead00
-KdVersionBlock                : 0x0
-IDT                           : 0xfffff80000b95080
-GDT                           : 0xfffff80000b95000
-CurrentThread                 : 0xfffffa800cf694d0 TID 2148 (kd.exe:2964)
-IdleThread                    : 0xfffff800029f8c40 TID 0 (Idle:0)
-Details                       : CPU 0 (GenuineIntel @ 2128 MHz)
-CR3/DTB                       : 0x1dcec000
-**************************************************
-Offset (V)                    : 0xf880009e7000
-Offset (P)                    : 0x4d9e000
-KdVersionBlock                : 0x0
-IDT                           : 0xfffff880009f2540
-GDT                           : 0xfffff880009f24c0
-CurrentThread                 : 0xfffffa800cf694d0 TID 2148 (kd.exe:2964)
-IdleThread                    : 0xfffff880009f1f40 TID 0 (Idle:0)
-Details                       : CPU 1 (GenuineIntel @ 2220 MHz)
-CR3/DTB                       : 0x1dcec000
-```
-
-If the KdVersionBlock is not null, then it may be  possible to find the machine's KDBG address via the KPCR. In fact, the  backup method of finding KDBG used by plugins such as pslist is to leverage kpcrscan and then call the KPCR.get_kdbg() API function.</pre>
-</div>
 <div created="20170616112642334" modified="20170616114935746" tags="[[Anti-Forensics Detection]]" title="Evolution of Windows Filesystems">
 <pre>* FAT12/16: MS-DOS, Win95/98/NT/2000
 * FAT32: Win95,Win2000,WinXP/2003/Vista/Win7/Win8/Win10
@@ -9854,7 +9753,7 @@ ARGUMENTS
 <div created="20170622094100334" modified="20170622094104872" tags="[[GCFA Exam]]" title="Identification of Malicious System and User Activity">
 <pre></pre>
 </div>
-<div created="20170623093600245" modified="20170623093732722" tags="[[Volatility Cheat Sheet]]" title="Image identification">
+<div created="20170623093600245" modified="20170623094333546" tags="volatility [[Volatility Cheat Sheet]]" title="Image identification">
 <pre>!!imageinfo
 
 For a high level summary of the memory sample you’re analyzing, use the imageinfo command. Most often this command is used to identify the operating system, service pack, and hardware architecture (32 or 64 bit), but it also contains other useful information such as the DTB address and time the sample was collected.
@@ -10536,6 +10435,613 @@ cd /mnt/windows_mount/WINDOWS/Prefetch/
 pf -v NET.EXE-1DF3A2F6.pf | grep run
 ```</pre>
 </div>
+<div created="20170623094524130" modified="20170623095241844" tags="[[Volatility Cheat Sheet]]" title="Processes and DLLs">
+<pre>!!pslist
+
+To list the processes of a system, use the pslist command. This walks the doubly-linked list pointed to by PsActiveProcessHead  and shows the offset, process name, process ID, the parent process ID,  number of threads, number of handles, and date/time when the process  started and exited. As of 2.1 it also shows the Session ID and if the  process is a Wow64 process (it uses a 32 bit address space on a 64 bit  kernel).
+This plugin does not detect hidden or unlinked processes (but psscan can do that).
+If you see processes with 0 threads, 0 handles, and/or a non-empty exit time, the process may not actually still be active. 
+For more information, see 
+The Mis-leading 'Active' in PsActiveProcessHead and ActiveProcessLinks
+On Windows, the nt!PsActiveProcessHead symbol points to a doubly-linked list of EPROCESS objects. It is very well…mnin.blogspot.it
+Below, you’ll notice regsvr32.exe has terminated even though its still in the &quot;active&quot; list.
+Also note the two processes System and smss.exe will not have a Session ID, because System starts before sessions are established and smss.exe is the session manager itself.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 pslist
+Volatility Foundation Volatility Framework 2.4
+Offset(V)          Name                    PID   PPID   Thds     Hnds   Sess  Wow64 Start                Exit                
+------------------ -------------------- ------ ------ ------ -------- ------ ------ -------------------- --------------------
+0xfffffa80004b09e0 System                    4      0     78      489 ------      0 2012-02-22 19:58:20                      
+0xfffffa8000ce97f0 smss.exe                208      4      2       29 ------      0 2012-02-22 19:58:20                      
+0xfffffa8000c006c0 csrss.exe               296    288      9      385      0      0 2012-02-22 19:58:24                      
+0xfffffa8000c92300 wininit.exe             332    288      3       74      0      0 2012-02-22 19:58:30                      
+0xfffffa8000c06b30 csrss.exe               344    324      7      252      1      0 2012-02-22 19:58:30                      
+0xfffffa8000c80b30 winlogon.exe            372    324      5      136      1      0 2012-02-22 19:58:31                      
+0xfffffa8000c5eb30 services.exe            428    332      6      193      0      0 2012-02-22 19:58:32                      
+0xfffffa80011c5700 lsass.exe               444    332      6      557      0      0 2012-02-22 19:58:32                      
+0xfffffa8000ea31b0 lsm.exe                 452    332     10      133      0      0 2012-02-22 19:58:32                      
+0xfffffa8001296b30 svchost.exe             568    428     10      352      0      0 2012-02-22 19:58:34                      
+0xfffffa80012c3620 svchost.exe             628    428      6      247      0      0 2012-02-22 19:58:34                      
+0xfffffa8001325950 sppsvc.exe              816    428      5      154      0      0 2012-02-22 19:58:41                      
+0xfffffa80007b7960 svchost.exe             856    428     16      404      0      0 2012-02-22 19:58:43                      
+0xfffffa80007bb750 svchost.exe             880    428     34     1118      0      0 2012-02-22 19:58:43                      
+0xfffffa80007d09e0 svchost.exe             916    428     19      443      0      0 2012-02-22 19:58:43                      
+0xfffffa8000c64840 svchost.exe             348    428     14      338      0      0 2012-02-22 20:02:07                      
+0xfffffa8000c09630 svchost.exe             504    428     16      496      0      0 2012-02-22 20:02:07                      
+0xfffffa8000e86690 spoolsv.exe            1076    428     12      271      0      0 2012-02-22 20:02:10                      
+0xfffffa8000518b30 svchost.exe            1104    428     18      307      0      0 2012-02-22 20:02:10                      
+0xfffffa800094d960 wlms.exe               1264    428      4       43      0      0 2012-02-22 20:02:11                      
+0xfffffa8000995b30 svchost.exe            1736    428     12      200      0      0 2012-02-22 20:02:25                      
+0xfffffa8000aa0b30 SearchIndexer.         1800    428     12      757      0      0 2012-02-22 20:02:26                      
+0xfffffa8000aea630 taskhost.exe           1144    428      7      189      1      0 2012-02-22 20:02:41                      
+0xfffffa8000eafb30 dwm.exe                1476    856      3       71      1      0 2012-02-22 20:02:41                      
+0xfffffa80008f3420 explorer.exe           1652    840     21      760      1      0 2012-02-22 20:02:42                      
+0xfffffa8000c9a630 regsvr32.exe           1180   1652      0 --------      1      0 2012-02-22 20:03:05  2012-02-22 20:03:08 
+0xfffffa8000a03b30 rundll32.exe           2016    568      3       67      1      0 2012-02-22 20:03:16                      
+0xfffffa8000a4f630 svchost.exe            1432    428     12      350      0      0 2012-02-22 20:04:14                      
+0xfffffa8000999780 iexplore.exe           1892   1652     19      688      1      1 2012-02-22 11:26:12                      
+0xfffffa80010c9060 iexplore.exe           2820   1892     23      733      1      1 2012-02-22 11:26:15                      
+0xfffffa8001016060 DumpIt.exe             2860   1652      2       42      1      1 2012-02-22 11:28:59                      
+0xfffffa8000acab30 conhost.exe            2236    344      2       51      1      0 2012-02-22 11:28:59
+By default, pslist shows virtual offsets for the _EPROCESS but the physical offset can be obtained with the -P switch:
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 pslist -P 
+Volatility Foundation Volatility Framework 2.4
+Offset(P)          Name                    PID   PPID   Thds     Hnds   Sess  Wow64 Start                Exit                
+------------------ -------------------- ------ ------ ------ -------- ------ ------ -------------------- --------------------
+0x0000000017fef9e0 System                    4      0     78      489 ------      0 2012-02-22 19:58:20                      
+0x00000000176e97f0 smss.exe                208      4      2       29 ------      0 2012-02-22 19:58:20                      
+0x00000000176006c0 csrss.exe               296    288      9      385      0      0 2012-02-22 19:58:24                      
+0x0000000017692300 wininit.exe             332    288      3       74      0      0 2012-02-22 19:58:30                      
+0x0000000017606b30 csrss.exe               344    324      7      252      1      0 2012-02-22 19:58:30
+...
+```
+
+!! pstree
+
+To view the process listing in tree form, use the pstree command. This enumerates processes using the same technique as pslist, so it will also not show hidden or unlinked processes. Child process are indicated using indention and periods.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 pstree
+Volatility Foundation Volatility Framework 2.4
+Name                                                  Pid   PPid   Thds   Hnds Time                
+-------------------------------------------------- ------ ------ ------ ------ --------------------
+ 0xfffffa80004b09e0:System                              4      0     78    489 2012-02-22 19:58:20 
+. 0xfffffa8000ce97f0:smss.exe                         208      4      2     29 2012-02-22 19:58:20 
+ 0xfffffa8000c006c0:csrss.exe                         296    288      9    385 2012-02-22 19:58:24 
+ 0xfffffa8000c92300:wininit.exe                       332    288      3     74 2012-02-22 19:58:30 
+. 0xfffffa8000c5eb30:services.exe                     428    332      6    193 2012-02-22 19:58:32 
+.. 0xfffffa8000aa0b30:SearchIndexer.                 1800    428     12    757 2012-02-22 20:02:26 
+.. 0xfffffa80007d09e0:svchost.exe                     916    428     19    443 2012-02-22 19:58:43 
+.. 0xfffffa8000a4f630:svchost.exe                    1432    428     12    350 2012-02-22 20:04:14 
+.. 0xfffffa800094d960:wlms.exe                       1264    428      4     43 2012-02-22 20:02:11 
+.. 0xfffffa8001325950:sppsvc.exe                      816    428      5    154 2012-02-22 19:58:41 
+.. 0xfffffa8000e86690:spoolsv.exe                    1076    428     12    271 2012-02-22 20:02:10 
+.. 0xfffffa8001296b30:svchost.exe                     568    428     10    352 2012-02-22 19:58:34 
+... 0xfffffa8000a03b30:rundll32.exe                  2016    568      3     67 2012-02-22 20:03:16
+...
+```
+
+!! psscan
+
+To enumerate processes using pool tag scanning (_POOL_HEADER), use the psscan  command. This can find processes that previously terminated (inactive)  and processes that have been hidden or unlinked by a rootkit. The  downside is that rootkits can still hide by overwriting the pool tag  values (though not commonly seen in the wild).
+
+```
+$ vol.py --profile=Win7SP0x86 -f win7.dmp psscan
+Volatility Foundation Volatility Framework 2.0
+ Offset     Name             PID    PPID   PDB        Time created             Time exited             
+---------- ---------------- ------ ------ ---------- ------------------------ ------------------------ 
+0x3e025ba8 svchost.exe        1116    508 0x3ecf1220 2010-06-16 15:25:25                              
+0x3e04f070 svchost.exe        1152    508 0x3ecf1340 2010-06-16 15:27:40                              
+0x3e144c08 dwm.exe            1540    832 0x3ecf12e0 2010-06-16 15:26:58                              
+0x3e145c18 TPAutoConnSvc.     1900    508 0x3ecf1360 2010-06-16 15:25:41                              
+0x3e3393f8 lsass.exe           516    392 0x3ecf10e0 2010-06-16 15:25:18                              
+0x3e35b8f8 svchost.exe         628    508 0x3ecf1120 2010-06-16 15:25:19                              
+0x3e383770 svchost.exe         832    508 0x3ecf11a0 2010-06-16 15:25:20                              
+0x3e3949d0 svchost.exe         740    508 0x3ecf1160 2010-06-16 15:25:20                              
+0x3e3a5100 svchost.exe         872    508 0x3ecf11c0 2010-06-16 15:25:20                              
+0x3e3f64e8 svchost.exe         992    508 0x3ecf1200 2010-06-16 15:25:24                              
+0x3e45a530 wininit.exe         392    316 0x3ecf10a0 2010-06-16 15:25:15                              
+0x3e45d928 svchost.exe        1304    508 0x3ecf1260 2010-06-16 15:25:28                              
+0x3e45f530 csrss.exe           400    384 0x3ecf1040 2010-06-16 15:25:15                              
+0x3e4d89c8 vmtoolsd.exe       1436    508 0x3ecf1280 2010-06-16 15:25:30                              
+0x3e4db030 spoolsv.exe        1268    508 0x3ecf1240 2010-06-16 15:25:28                              
+0x3e50b318 services.exe        508    392 0x3ecf1080 2010-06-16 15:25:18                              
+0x3e7f3d40 csrss.exe           352    316 0x3ecf1060 2010-06-16 15:25:12                              
+0x3e7f5bc0 winlogon.exe        464    384 0x3ecf10c0 2010-06-16 15:25:18                              
+0x3eac6030 SearchProtocol     2448   1168 0x3ecf15c0 2010-06-16 23:30:52      2010-06-16 23:33:14     
+0x3eb10030 SearchFilterHo     1812   1168 0x3ecf1480 2010-06-16 23:31:02      2010-06-16 23:33:14 
+```
+
+If a process has previously terminated, the Time exited field will show the exit time. If you want to investigate a hidden process (such as displaying its DLLs), then you’ll need physical offset of the _EPROCESS object, which is shown in the far left column. Almost all process-related plugins take a --OFFSET parameter so that you can work with hidden processes.
+
+
+!! psdispscan
+
+This plugin is similar to psscan, except it enumerates processes by scanning for DISPATCHER_HEADER instead of pool tags. This gives you an alternate way to carve _EPROCESS  objects in the event an attacker tried to hide by altering pool tags.  This plugin is not well maintained and only supports XP x86. To use it,  you must type --plugins=contrib/plugins on command-line.
+
+
+!! dlllist
+
+To display a process’s loaded DLLs, use the dlllist command. It walks the doubly-linked list of _LDR_DATA_TABLE_ENTRY structures which is pointed to by the PEB's InLoadOrderModuleList.  DLLs are automatically added to this list when a process calls  LoadLibrary (or some derivative such as LdrLoadDll) and they aren't  removed until FreeLibrary is called and the reference count  reaches zero. The load count column tells you if a DLL was statically  loaded (i.e. as a result of being in the exe or another DLL's import  table) or dynamically loaded.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 dlllist 
+************************************************************************
+wininit.exe pid:    332
+Command line : wininit.exe
+Base                             Size          LoadCount Path
+------------------ ------------------ ------------------ ----
+0x00000000ff530000            0x23000             0xffff C:\Windows\system32\wininit.exe
+0x0000000076d40000           0x1ab000             0xffff C:\Windows\SYSTEM32\ntdll.dll
+0x0000000076b20000           0x11f000             0xffff C:\Windows\system32\kernel32.dll
+0x000007fefcd50000            0x6b000             0xffff C:\Windows\system32\KERNELBASE.dll
+0x0000000076c40000            0xfa000             0xffff C:\Windows\system32\USER32.dll
+0x000007fefd7c0000            0x67000             0xffff C:\Windows\system32\GDI32.dll
+0x000007fefe190000             0xe000             0xffff C:\Windows\system32\LPK.dll
+0x000007fefef80000            0xca000             0xffff C:\Windows\system32\USP10.dll
+0x000007fefd860000            0x9f000             0xffff C:\Windows\system32\msvcrt.dll
+```
+
+To display the DLLs for a specific process instead of all processes, use the -p or --pid  filter as shown below. Also, in the following output, notice we're  analyzing a Wow64 process. Wow64 processes have a limited list of DLLs  in the PEB lists, but that doesn't mean they're the only DLLs loaded in the process address space. Thus Volatility will remind you to use the ldrmodules instead for these processes.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 dlllist -p 1892
+Volatility Foundation Volatility Framework 2.4
+************************************************************************
+iexplore.exe pid:   1892
+Command line : &quot;C:\Program Files (x86)\Internet Explorer\iexplore.exe&quot; 
+Note: use ldrmodules for listing DLLs in Wow64 processes
+Base                             Size          LoadCount Path
+------------------ ------------------ ------------------ ----
+0x0000000000080000            0xa6000             0xffff C:\Program Files (x86)\Internet Explorer\iexplore.exe
+0x0000000076d40000           0x1ab000             0xffff C:\Windows\SYSTEM32\ntdll.dll
+0x00000000748d0000            0x3f000                0x3 C:\Windows\SYSTEM32\wow64.dll
+0x0000000074870000            0x5c000                0x1 C:\Windows\SYSTEM32\wow64win.dll
+0x0000000074940000             0x8000                0x1 C:\Windows\SYSTEM32\wow64cpu.dll
+```
+
+To display the DLLs for a process that is hidden or unlinked by a rootkit, first use the psscan to get the physical offset of the EPROCESS object and supply it with — offset=OFFSET. The plugin will “bounce back” and determine the virtual address of the EPROCESS and then acquire an address space in order to access the PEB.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 dlllist --offset=0x04a291a8
+```
+
+!! dlldump
+
+To extract a DLL from a process’s memory space and dump it to disk for analysis, use the dlldump command. The syntax is nearly the same as what we’ve shown for dlllist above. You can:
+Dump all DLLs from all processes
+Dump all DLLs from a specific process (with --pid=PID)
+Dump all DLLs from a hidden/unlinked process (with --offset=OFFSET)
+Dump a PE from anywhere in process memory (with --base=BASEADDR), this option is useful for extracting hidden DLLs
+Dump one or more DLLs that match a regular expression (--regex=REGEX), case sensitive or not (--ignore-case)
+
+To specify an output directory, use --dump-dir=DIR or -d DIR.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 dlldump -D dlls/
+...
+Process(V)         Name                 Module Base        Module Name          Result
+------------------ -------------------- ------------------ -------------------- ------
+0xfffffa8000ce97f0 smss.exe             0x0000000047a90000 smss.exe             OK: module.208.176e97f0.47a90000.dll
+0xfffffa8000ce97f0 smss.exe             0x0000000076d40000                      Error: DllBase is paged
+0xfffffa8000c006c0 csrss.exe            0x0000000049700000 csrss.exe            OK: module.296.176006c0.49700000.dll
+0xfffffa8000c006c0 csrss.exe            0x0000000076d40000 ntdll.dll            Error: DllBase is paged
+0xfffffa8000c006c0 csrss.exe            0x000007fefd860000 msvcrt.dll           Error: DllBase is paged
+0xfffffa80011c5700 lsass.exe            0x000007fefcc40000 WINSTA.dll           Error: DllBase is paged
+0xfffffa80011c5700 lsass.exe            0x000007fefd7c0000 GDI32.dll            OK: module.444.173c5700.7fefd7c0000.dll
+0xfffffa80011c5700 lsass.exe            0x000007fefc270000 DNSAPI.dll           OK: module.444.173c5700.7fefc270000.dll
+0xfffffa80011c5700 lsass.exe            0x000007fefc5d0000 Secur32.dll          OK: module.444.173c5700.7fefc5d0000.dll
+...
+```
+
+If the extraction fails, as it did for a few DLLs above, it probably means that some of the memory pages in that DLL were not memory resident (due to paging). In particular, this is a problem if the first page containing the PE header and thus the PE section mappings is not available. In these cases you can still extract the memory segment using the vaddump command, but you’ll need to manually rebuild the PE header and fixup the sections (if you plan on analyzing in IDA Pro) as described in Recovering CoreFlood Binaries with Volatility.
+
+To dump a PE file that doesn’t exist in the DLLs list (for example, due to code injection or malicious unlinking), just specify the base address of the PE in process memory:
+
+```
+$ vol.py --profile=Win7SP0x86 -f win7.dmp dlldump --pid=492 -D out --base=0x00680000
+```
+
+You can also specify an EPROCESS offset if the DLL you want is in a hidden process:
+
+```
+$ vol.py --profile=Win7SP0x86 -f win7.dmp dlldump -o 0x3e3f64e8 -D out --base=0x00680000
+```
+
+!! handles
+
+To display the open handles in a process, use the handles command. This applies to files, registry keys, mutexes, named pipes, events, window stations, desktops, threads, and all other types of securable executive objects. As of 2.1, the output includes handle value and granted access for each object.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 handles
+Volatility Foundation Volatility Framework 2.4
+Offset(V)             Pid             Handle             Access Type             Details
+------------------ ------ ------------------ ------------------ ---------------- -------
+0xfffffa80004b09e0      4                0x4           0x1fffff Process          System(4)
+0xfffff8a0000821a0      4               0x10            0x2001f Key              MACHINE\SYSTEM\CONTROLSET001\CONTROL\PRODUCTOPTIONS
+0xfffff8a00007e040      4               0x14            0xf003f Key              MACHINE\SYSTEM\CONTROLSET001\CONTROL\SESSION MANAGER\MEMORY MANAGEMENT\PREFETCHPARAMETERS
+0xfffff8a000081fa0      4               0x18            0x2001f Key              MACHINE\SYSTEM\SETUP
+0xfffffa8000546990      4               0x1c           0x1f0001 ALPC Port        PowerMonitorPort
+0xfffffa800054d070      4               0x20           0x1f0001 ALPC Port        PowerPort
+0xfffff8a0000676a0      4               0x24            0x20019 Key              MACHINE\HARDWARE\DESCRIPTION\SYSTEM\MULTIFUNCTIONADAPTER
+0xfffffa8000625460      4               0x28           0x1fffff Thread           TID 160 PID 4
+0xfffff8a00007f400      4               0x2c            0xf003f Key              MACHINE\SYSTEM\CONTROLSET001
+0xfffff8a00007f200      4               0x30            0xf003f Key              MACHINE\SYSTEM\CONTROLSET001\ENUM
+0xfffff8a000080d10      4               0x34            0xf003f Key              MACHINE\SYSTEM\CONTROLSET001\CONTROL\CLASS
+0xfffff8a00007f500      4               0x38            0xf003f Key              MACHINE\SYSTEM\CONTROLSET001\SERVICES
+0xfffff8a0001cd990      4               0x3c                0xe Token            
+0xfffff8a00007bfa0      4               0x40            0x20019 Key              MACHINE\SYSTEM\CONTROLSET001\CONTROL\WMI\SECURITY
+0xfffffa8000cd52b0      4               0x44           0x120116 File             \Device\Mup
+0xfffffa8000ce97f0      4               0x48               0x2a Process          smss.exe(208)
+0xfffffa8000df16f0      4               0x4c           0x120089 File             \Device\HarddiskVolume2\Windows\System32\en-US\win32k.sys.mui
+0xfffffa8000de37f0      4               0x50           0x12019f File             \Device\clfsTxfLog
+0xfffff8a000952fa0      4               0x54            0x2001f Key              MACHINE\SYSTEM\CONTROLSET001\CONTROL\VIDEO\{6A8FC9DC-A76B-47FC-A703-17800182E1CE}\0000\VOLATILESETTINGS
+0xfffffa800078da20      4               0x58           0x12019f File             \Device\Tcp
+0xfffff8a002e17610      4               0x5c                0x9 Key              MACHINE\SOFTWARE\MICROSOFT\WINDOWS NT\CURRENTVERSION\IMAGE FILE EXECUTION OPTIONS
+0xfffff8a0008f7b00      4               0x60               0x10 Key              MACHINE\SYSTEM\CONTROLSET001\CONTROL\LSA
+0xfffffa8000da2870      4               0x64           0x100001 File             \Device\KsecDD
+0xfffffa8000da3040      4               0x68                0x0 Thread           TID 228 PID 4
+...
+```
+
+You can display handles for a particular process by specifying --pid=PID or the physical offset of an _EPROCESS structure (--physical-offset=OFFSET). You can also filter by object type using -t or --object-type=OBJECTTYPE. For example to only display handles to process objects for pid 600, do the following:
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 handles -p 296 -t Process
+Volatility Foundation Volatility Framework 2.4
+Offset(V)             Pid             Handle             Access Type             Details
+------------------ ------ ------------------ ------------------ ---------------- -------
+0xfffffa8000c92300    296               0x54           0x1fffff Process          wininit.exe(332)
+0xfffffa8000c5eb30    296               0xc4           0x1fffff Process          services.exe(428)
+0xfffffa80011c5700    296               0xd4           0x1fffff Process          lsass.exe(444)
+0xfffffa8000ea31b0    296               0xe4           0x1fffff Process          lsm.exe(452)
+0xfffffa8000c64840    296              0x140           0x1fffff Process          svchost.exe(348)
+0xfffffa8001296b30    296              0x150           0x1fffff Process          svchost.exe(568)
+0xfffffa80012c3620    296              0x18c           0x1fffff Process          svchost.exe(628)
+0xfffffa8001325950    296              0x1dc           0x1fffff Process          sppsvc.exe(816)
+...
+```
+
+The object type can be any of the names printed by the “object \ObjectTypes” windbg command.
+
+!! getsids
+
+To view the SIDs (Security Identifiers) associated with a process, use the getsids command. Among other things, this can help you identify processes which have maliciously escalated privileges and which processes belong to specific users.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 getsids
+Volatility Foundation Volatility Framework 2.4
+System (4): S-1-5-18 (Local System)
+System (4): S-1-5-32-544 (Administrators)
+System (4): S-1-1-0 (Everyone)
+System (4): S-1-5-11 (Authenticated Users)
+System (4): S-1-16-16384 (System Mandatory Level)
+smss.exe (208): S-1-5-18 (Local System)
+smss.exe (208): S-1-5-32-544 (Administrators)
+smss.exe (208): S-1-1-0 (Everyone)
+smss.exe (208): S-1-5-11 (Authenticated Users)
+smss.exe (208): S-1-16-16384 (System Mandatory Level)
+```
+
+!! cmdscan
+
+The cmdscan plugin searches the memory of csrss.exe on XP/2003/Vista/2008 and conhost.exe on Windows 7 for commands that attackers entered through a console shell (cmd.exe). This is one of the most powerful commands you can use to gain visibility into an attackers actions on a victim system, whether they opened cmd.exe through an RDP session or proxied input/output to a command shell from a networked backdoor.
+This plugin finds structures known as COMMAND_HISTORY by looking for a known constant value (MaxHistory) and then applying sanity checks. It is important to note that the MaxHistory value can be changed by right clicking in the top left of a cmd.exe window and going to Properties. The value can also be changed for all consoles opened by a given user by modifying the registry key HKCU\Console\HistoryBufferSize. The default is 50 on Windows systems, meaning the most recent 50 commands are saved. You can tweak it if needed by using the — max_history=NUMBER parameter.
+The structures used by this plugin are not public (i.e. Microsoft does not produce PDBs for them), thus they’re not available in WinDBG or any other forensic framework. They were reverse engineered by Michael Ligh from the conhost.exe and winsrv.dll binaries.
+In addition to the commands entered into a shell, this plugin shows:
+The name of the console host process (csrss.exe or conhost.exe)
+The name of the application using the console (whatever process is using cmd.exe)
+The location of the command history buffers, including the current buffer count, last added command, and last displayed command
+The application process handle
+
+Due to the scanning technique this plugin uses, it has the capability to find commands from both active and closed consoles.
+
+```
+$ vol.py -f VistaSP2x64.vmem --profile=VistaSP2x64 cmdscan
+Volatility Foundation Volatility Framework 2.4
+**************************************************
+CommandProcess: csrss.exe Pid: 528
+CommandHistory: 0x135ec00 Application: cmd.exe Flags: Allocated, Reset
+CommandCount: 18 LastAdded: 17 LastDisplayed: 17
+FirstCommand: 0 CommandCountMax: 50
+ProcessHandle: 0x330
+Cmd #0 @ 0x135ef10: cd \
+Cmd #1 @ 0x135ef50: cd de
+Cmd #2 @ 0x135ef70: cd PerfLogs
+Cmd #3 @ 0x135ef90: cd ..
+Cmd #4 @ 0x5c78b90: cd &quot;Program Files&quot;
+Cmd #5 @ 0x135fae0: cd &quot;Debugging Tools for Windows (x64)&quot;
+Cmd #6 @ 0x135efb0: livekd -w
+Cmd #7 @ 0x135f010: windbg 
+Cmd #8 @ 0x135efd0: cd \
+Cmd #9 @ 0x135fd20: rundll32 c:\apphelp.dll,ExportFunc
+Cmd #10 @ 0x5c8bdb0: rundll32 c:\windows_apphelp.dll,ExportFunc
+Cmd #11 @ 0x5c8be10: rundll32 c:\windows_apphelp.dll
+Cmd #12 @ 0x135ee30: rundll32 c:\windows_apphelp.dll,Test
+Cmd #13 @ 0x135fd70: cd &quot;Program Files&quot;
+Cmd #14 @ 0x5c8b9e0: dir
+Cmd #15 @ 0x5c8be60: cd &quot;Debugging Tools for Windows (x64)&quot;
+Cmd #16 @ 0x5c8ba00: dir
+Cmd #17 @ 0x135eff0: livekd -w
+```
+
+!! consoles
+
+Similar to cmdscan the consoles plugin finds commands that attackers typed into cmd.exe or executed via backdoors. However, instead of scanning for COMMAND_HISTORY, this plugin scans for CONSOLE_INFORMATION. The major advantage to this plugin is it not only prints the commands attackers typed, but it collects the entire screen buffer (input and output). For instance, instead of just seeing “dir”, you’ll see exactly what the attacker saw, including all files and directories listed by the “dir” command.
+Additionally, this plugin prints the following:
+The original console window title and current console window title
+The name and pid of attached processes (walks a LIST_ENTRY to enumerate all of them if more than one)
+Any aliases associated with the commands executed. For example, attackers can register an alias such that typing “hello” actually executes “cd system”
+The screen coordinates of the cmd.exe console
+
+Here’s an example of the consoles command. Below, you’ll notice something quite funny. The forensic investigator seems to have lost his mind and cannot find the dd.exe tool for dumping memory. Nearly 20 typos later, he finds the tool and uses it.
+
+```
+$ vol.py -f xp-laptop-2005-07-04-1430.img consoles
+Volatility Foundation Volatility Framework 2.4
+[csrss.exe @ 0x821c11a8 pid 456 console @ 0x4e23b0]
+  OriginalTitle: '%SystemRoot%\\system32\\cmd.exe'
+  Title: 'C:\\WINDOWS\\system32\\cmd.exe - dd if=\\\\.\\PhysicalMemory of=c:\\xp-2005-07-04-1430.img conv=noerror'
+  HistoryBufferCount: 2
+  HistoryBufferMax: 4
+  CommandHistorySize: 50
+[history @ 0x4e4008]
+  CommandCount: 0
+  CommandCountMax: 50
+  Application: 'dd.exe'
+[history @ 0x4e4d88]
+  CommandCount: 20
+  CommandCountMax: 50
+  Application: 'cmd.exe'
+  Cmd #0 @ 0x4e1f90: 'dd'
+  Cmd #1 @ 0x4e2cb8: 'cd\\'
+  Cmd #2 @ 0x4e2d18: 'dr'
+  Cmd #3 @ 0x4e2d28: 'ee:'
+  Cmd #4 @ 0x4e2d38: 'e;'
+  Cmd #5 @ 0x4e2d48: 'e:'
+  Cmd #6 @ 0x4e2d58: 'dr'
+  Cmd #7 @ 0x4e2d68: 'd;'
+  Cmd #8 @ 0x4e2d78: 'd:'
+  Cmd #9 @ 0x4e2d88: 'dr'
+  Cmd #10 @ 0x4e2d98: 'ls'
+  Cmd #11 @ 0x4e2da8: 'cd Docu'
+  Cmd #12 @ 0x4e2dc0: 'cd Documents and'
+  Cmd #13 @ 0x4e2e58: 'dr'
+  Cmd #14 @ 0x4e2e68: 'd:'
+  Cmd #15 @ 0x4e2e78: 'cd dd\\'
+  Cmd #16 @ 0x4e2e90: 'cd UnicodeRelease'
+  Cmd #17 @ 0x4e2ec0: 'dr'
+  Cmd #18 @ 0x4e2ed0: 'dd '
+  Cmd #19 @ 0x4e4100: 'dd if=\\\\.\\PhysicalMemory of=c:\\xp-2005-07-04-1430.img conv=noerror'
+[screen @ 0x4e2460 X:80 Y:300]
+  Output: Microsoft Windows XP [Version 5.1.2600]                                         
+  Output: (C) Copyright 1985-2001 Microsoft Corp.                                         
+  Output:                                                                                 
+  Output: C:\Documents and Settings\Sarah&gt;dd                                              
+  Output: 'dd' is not recognized as an internal or external command,                      
+  Output: operable program or batch file.                                                 
+  Output:                                                                                 
+  Output: C:\Documents and Settings\Sarah&gt;cd\                                             
+  Output:                                                                                 
+  Output: C:\&gt;dr                                                                          
+  Output: 'dr' is not recognized as an internal or external command,                      
+  Output: operable program or batch file.                                                 
+  Output:                                                                                 
+  Output: C:\&gt;ee:                                                                         
+  Output: 'ee:' is not recognized as an internal or external command,                     
+  Output: operable program or batch file.                                                 
+  Output:                                                                                 
+  Output: C:\&gt;e;                                                                          
+  Output: 'e' is not recognized as an internal or external command,                       
+  Output: operable program or batch file.                                                 
+  Output:                                                                                 
+  Output: C:\&gt;e:                                                                          
+  Output: The system cannot find the drive specified.                                     
+  Output:                                                                                 
+  Output: C:\&gt;dr                                                                          
+  Output: 'dr' is not recognized as an internal or external command,                      
+  Output: operable program or batch file.                                                 
+  Output:                                                                                 
+  Output: C:\&gt;d;                                                                          
+  Output: 'd' is not recognized as an internal or external command,                       
+  Output: operable program or batch file.                                                 
+  Output:                                                                                 
+  Output: C:\&gt;d:                                                                          
+  Output:                                                                                 
+  Output: D:\&gt;dr                                                                          
+  Output: 'dr' is not recognized as an internal or external command,                      
+  Output: operable program or batch file.                                                 
+  Output:                                                                                 
+  Output: D:\&gt;dr                                                                          
+  Output: 'dr' is not recognized as an internal or external command,                      
+  Output: operable program or batch file.                                                 
+  Output:                                                                                 
+  Output: D:\&gt;ls                                                                          
+  Output: 'ls' is not recognized as an internal or external command,                      
+  Output: operable program or batch file.                                                 
+  Output:                                                                                 
+  Output: D:\&gt;cd Docu                                                                     
+  Output: The system cannot find the path specified.                                      
+  Output:                                                                                 
+  Output: D:\&gt;cd Documents and                                                            
+  Output: The system cannot find the path specified.                                      
+  Output:                                                                                 
+  Output: D:\&gt;dr                                                                          
+  Output: 'dr' is not recognized as an internal or external command,                      
+  Output: operable program or batch file.                                                 
+  Output:                                                                                 
+  Output: D:\&gt;d:                                                                          
+  Output:                                                                                 
+  Output: D:\&gt;cd dd\                                                                      
+  Output:                                                                                 
+  Output: D:\dd&gt;                                                                          
+  Output: D:\dd&gt;cd UnicodeRelease                                                         
+  Output:                                                                                 
+  Output: D:\dd\UnicodeRelease&gt;dr                                                         
+  Output: 'dr' is not recognized as an internal or external command,                      
+  Output: operable program or batch file.                                                 
+  Output:                                                                                 
+  Output: D:\dd\UnicodeRelease&gt;dd                                                         
+  Output:                                                                                 
+  Output: 0+0 records in                                                                  
+  Output: 0+0 records out                                                                 
+  Output: ^C                                                                              
+  Output: D:\dd\UnicodeRelease&gt;dd if=\\.\PhysicalMemory of=c:\xp-2005-07-04-1430.img conv=
+  Output: noerror                                                                         
+  Output: Forensic Acquisition Utilities, 1, 0, 0, 1035                                   
+  Output: dd, 3, 16, 2, 1035                                                              
+  Output: Copyright (C) 2002-2004 George M. Garner Jr.                                    
+  Output:                                                                                 
+  Output: Command Line: dd if=\\.\PhysicalMemory of=c:\xp-2005-07-04-1430.img conv=noerror
+  Output:                                                                                 
+  Output: Based on original version developed by Paul Rubin, David MacKenzie, and Stuart K
+  Output: emp                                                                             
+  Output: Microsoft Windows: Version 5.1 (Build 2600.Professional Service Pack 2)         
+  Output:                                                                                 
+  Output: 04/07/2005  18:30:32 (UTC)                                                      
+  Output: 04/07/2005  14:30:32 (local time)                                               
+  Output:                                                                                 
+  Output: Current User: SPLATITUDE\Sarah                                                  
+  Output:                                                                                 
+  Output: Total physical memory reported: 523676 KB                                       
+  Output: Copying physical memory...                                                      
+  Output: Physical memory in the range 0x00004000-0x00004000 could not be read.
+```
+
+!! privs
+
+This plugin shows you which process privileges are present, enabled, and/or enabled by default. You can pass it the — silent flag to only show privileges that a process explicitly enabled (i.e. that were were not enabled by default but are currently enabled). The — regex=REGEX parameter can be used to filter for specific privilege names.
+
+```
+$ vol.py -f win7_trial_64bit.raw privs --profile=Win7SP0x64
+Volatility Foundation Volatility Framework 2.3_alpha
+Pid      Process          Value  Privilege                            Attributes               Description
+-------- ---------------- ------ ------------------------------------ ------------------------ -----------
+       4 System                2 SeCreateTokenPrivilege               Present                  Create a token object
+       4 System                3 SeAssignPrimaryTokenPrivilege        Present                  Replace a process-level token
+       4 System                4 SeLockMemoryPrivilege                Present,Enabled,Default  Lock pages in memory
+       4 System                5 SeIncreaseQuotaPrivilege             Present                  Increase quotas
+       4 System                6 SeMachineAccountPrivilege                                     Add workstations to the domain
+       4 System                7 SeTcbPrivilege                       Present,Enabled,Default  Act as part of the operating system
+       4 System                8 SeSecurityPrivilege                  Present                  Manage auditing and security log
+       4 System                9 SeTakeOwnershipPrivilege             Present                  Take ownership of files/objects
+       4 System               10 SeLoadDriverPrivilege                Present                  Load and unload device drivers
+       4 System               11 SeSystemProfilePrivilege             Present,Enabled,Default  Profile system performance
+       4 System               12 SeSystemtimePrivilege                Present                  Change the system time
+       4 System               13 SeProfileSingleProcessPrivilege      Present,Enabled,Default  Profile a single process
+       4 System               14 SeIncreaseBasePriorityPrivilege      Present,Enabled,Default  Increase scheduling priority
+       4 System               15 SeCreatePagefilePrivilege            Present,Enabled,Default  Create a pagefile
+       4 System               16 SeCreatePermanentPrivilege           Present,Enabled,Default  Create permanent shared objects
+.....
+```
+
+!! envars
+
+To display a process’s environment variables, use the envars plugin. Typically this will show the number of CPUs installed and the hardware architecture (though the kdbgscan output is a much more reliable source), the process’s current directory, temporary directory, session name, computer name, user name, and various other interesting artifacts.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 envars
+Volatility Foundation Volatility Framework 2.4
+Pid      Process              Block              Variable                       Value
+-------- -------------------- ------------------ ------------------------------ -----
+     296 csrss.exe            0x00000000003d1320 ComSpec                        C:\Windows\system32\cmd.exe
+     296 csrss.exe            0x00000000003d1320 FP_NO_HOST_CHECK               NO
+     296 csrss.exe            0x00000000003d1320 NUMBER_OF_PROCESSORS           1
+     296 csrss.exe            0x00000000003d1320 OS                             Windows_NT
+     296 csrss.exe            0x00000000003d1320 Path                           C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\
+     296 csrss.exe            0x00000000003d1320 PATHEXT                        .COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC
+     296 csrss.exe            0x00000000003d1320 PROCESSOR_ARCHITECTURE         AMD64
+     296 csrss.exe            0x00000000003d1320 PROCESSOR_IDENTIFIER           Intel64 Family 6 Model 2 Stepping 3, GenuineIntel
+     296 csrss.exe            0x00000000003d1320 PROCESSOR_LEVEL                6
+     296 csrss.exe            0x00000000003d1320 PROCESSOR_REVISION             0203
+     296 csrss.exe            0x00000000003d1320 PSModulePath                   C:\Windows\system32\WindowsPowerShell\v1.0\Modules\
+     296 csrss.exe            0x00000000003d1320 SystemDrive                    C:
+     296 csrss.exe            0x00000000003d1320 SystemRoot                     C:\Windows
+     296 csrss.exe            0x00000000003d1320 TEMP                           C:\Windows\TEMP
+     296 csrss.exe            0x00000000003d1320 TMP                            C:\Windows\TEMP
+     296 csrss.exe            0x00000000003d1320 USERNAME                       SYSTEM
+     296 csrss.exe            0x00000000003d1320 windir                         C:\Windows
+```
+
+!! verinfo
+
+To display the version information embedded in PE files, use the verinfo command. Not all PE files have version information, and many malware authors forge it to include false data, but nonetheless this command can be very helpful with identifying binaries and for making correlations with other files.
+This plugin only supports printing version information from process executables and DLLs, but later will be expanded to include kernel modules. If you want to filter by module name, use the — regex=REGEX and/or — ignore-case options.
+
+```
+$ vol.py -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 verinfo
+Volatility Foundation Volatility Framework 2.4
+\SystemRoot\System32\smss.exe
+C:\Windows\SYSTEM32\ntdll.dll
+C:\Windows\system32\csrss.exe
+  File version    : 6.1.7600.16385
+  Product version : 6.1.7600.16385
+  Flags           : 
+  OS              : Windows NT
+  File Type       : Application
+  File Date       : 
+  CompanyName : Microsoft Corporation
+  FileDescription : Client Server Runtime Process
+  FileVersion : 6.1.7600.16385 (win7_rtm.090713-1255)
+  InternalName : CSRSS.Exe
+  LegalCopyright : \xa9 Microsoft Corporation. All rights reserved.
+  OriginalFilename : CSRSS.Exe
+  ProductName : Microsoft\xae Windows\xae Operating System
+  ProductVersion : 6.1.7600.16385
+```
+
+!! enumfunc
+
+This plugin enumerates imported and exported functions from processes, dlls, and kernel drivers. Specifically, it handles functions imported by name or ordinal, functions exported by name or ordinal, and forwarded exports. The output will be very verbose in most cases (functions exported by ntdll, msvcrt, and kernel32 can reach 1000+ alone). So you can either reduce the verbosity by filtering criteria with the command-line options (shown below) or you can use look at the code in enumfunc.py and use it as an example of how to use the IAT and EAT parsing API functions in your own plugin. For example, the apihooks plugin leverages the imports and exports APIs to find functions in memory when checking for hooks.
+Also note this plugin is in the contrib directory, so you can pass that to — plugins like this:
+
+```
+$ vol.py --plugins=contrib/plugins/ -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 enumfunc -h
+....
+  -s, --scan            Scan for objects
+  -P, --process-only    Process only
+  -K, --kernel-only     Kernel only
+  -I, --import-only     Imports only
+  -E, --export-only     Exports only
+To use pool scanners for finding processes and kernel drivers instead of walking linked lists, use the -s option. This can be useful if you’re trying to enumerate functions in hidden processes or drivers. An example of the remaining command-line options is shown below.
+To show exported functions in process memory, use -P and -E like this:
+$ vol.py --plugins=contrib/plugins/ -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 enumfunc -P -E
+Process              Type       Module               Ordinal    Address              Name
+lsass.exe            Export     ADVAPI32.dll         1133       0x000007fefd11dd34 CreateWellKnownSid
+lsass.exe            Export     ADVAPI32.dll         1134       0x000007fefd17a460 CredBackupCredentials
+lsass.exe            Export     ADVAPI32.dll         1135       0x000007fefd170590 CredDeleteA
+lsass.exe            Export     ADVAPI32.dll         1136       0x000007fefd1704d0 CredDeleteW
+lsass.exe            Export     ADVAPI32.dll         1137       0x000007fefd17a310 CredEncryptAndMarshalBinaryBlob
+lsass.exe            Export     ADVAPI32.dll         1138       0x000007fefd17d080 CredEnumerateA
+lsass.exe            Export     ADVAPI32.dll         1139       0x000007fefd17cf50 CredEnumerateW
+lsass.exe            Export     ADVAPI32.dll         1140       0x000007fefd17ca00 CredFindBestCredentialA
+lsass.exe            Export     ADVAPI32.dll         1141       0x000007fefd17c8f0 CredFindBestCredentialW
+lsass.exe            Export     ADVAPI32.dll         1142       0x000007fefd130c10 CredFree
+lsass.exe            Export     ADVAPI32.dll         1143       0x000007fefd1630f0 CredGetSessionTypes
+lsass.exe            Export     ADVAPI32.dll         1144       0x000007fefd1703d0 CredGetTargetInfoA
+```
+
+To show imported functions in kernel memory, use -K and -I like this:
+
+```
+$ vol.py --plugins=contrib/plugins/ -f ~/Desktop/win7_trial_64bit.raw --profile=Win7SP0x64 enumfunc -K -I
+Volatility Foundation Volatility Framework 2.4
+Process              Type       Module               Ordinal    Address              Name
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         583        0xfffff80002acc320 ntoskrnl.exeIoRegisterPlugPlayNotification
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         1325       0xfffff800029f9f30 ntoskrnl.exeRtlAppendStringToString
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         509        0xfffff800026d06e0 ntoskrnl.exeIoGetAttachedDevice
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         443        0xfffff800028f7ec0 ntoskrnl.exeIoBuildSynchronousFsdRequest
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         1466       0xfffff80002699300 ntoskrnl.exeRtlInitUnicodeString
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         759        0xfffff80002697be0 ntoskrnl.exeKeInitializeEvent
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         1461       0xfffff8000265e8a0 ntoskrnl.exeRtlInitAnsiString
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         1966       0xfffff80002685060 ntoskrnl.exeZwSetValueKey
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         840        0xfffff80002699440 ntoskrnl.exeKeReleaseSpinLock
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         1190       0xfffff800027a98b0 ntoskrnl.exePoRequestPowerIrp
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         158        0xfffff800026840f0 ntoskrnl.exeExInterlockedInsertTailList
+&lt;KERNEL&gt;             Import     VIDEOPRT.SYS         1810       0xfffff80002684640 ntoskrnl.exeZwClose
+```</pre>
+</div>
 <div created="20170615150841469" modified="20170615150850220" tags="SuperTimeline" title="psort.py">
 <pre>```
 usage: psort.py [-h] [-V] [--analysis PLUGIN_LIST] [--use_zeromq]
@@ -10821,13 +11327,14 @@ Da WIndows 7 in poi la data di ultimo accesso sui files non viene piú aggiornat
 <div created="20170615101047269" modified="20170616135606575" tags="References" title="Tools">
 <pre>{{{ [tag[Tools]] }}}</pre>
 </div>
-<div created="20170622095303780" modified="20170622095843071" tags="[[GCFA Exam]]" title="Volatile Artifact Analysis">
+<div created="20170622095303780" modified="20170623095324433" tags="[[GCFA Exam]]" title="Volatile Artifact Analysis">
 <pre>* [[Volatility]]
 * [[Volatility Memory Analysis]]
-* [[Volatility Cheat Sheet]]</pre>
+* [[Volatility Cheat Sheet]]
+* [[Processes and DLLs]]</pre>
 </div>
-<div created="20170622095336000" modified="20170622095338476" tags="[[GCFA Exam]]" title="Volatile Data Collection">
-<pre></pre>
+<div created="20170622095336000" modified="20170623094406175" tags="[[GCFA Exam]]" title="Volatile Data Collection">
+<pre>* [[Image identification]]</pre>
 </div>
 <div created="20170615091137517" modified="20170615142646655" tags="Tools" title="Volatility">
 <pre>```

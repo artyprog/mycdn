@@ -194,6 +194,8 @@ Error message and password prompt
 
 <li>$:/state/toc/TableOfContents-Tools--81657105</li>
 
+<li>$:/state/toc/TableOfContents/Cheat sheets-Volatility Cheat Sheet--81657105</li>
+
 <li>$:/state/toc/TableOfContents/SANS FOR508-Anti-Forensics Detection--81657105</li>
 
 <li>$:/state/toc/TableOfContents/SANS FOR508-Filesystem analysis--81657105</li>
@@ -8659,17 +8661,20 @@ Error message and password prompt
 <div created="20170619140350389" modified="20170619140350389" title="$:/state/toc/TableOfContents-Cheat sheets--1372903757">
 <pre>open</pre>
 </div>
-<div created="20170621151939779" modified="20170622093240437" title="$:/state/toc/TableOfContents-Cheat sheets--81657105">
-<pre>close</pre>
+<div created="20170621151939779" modified="20170626074555611" title="$:/state/toc/TableOfContents-Cheat sheets--81657105">
+<pre>open</pre>
 </div>
 <div created="20170622095546098" modified="20170623094339688" title="$:/state/toc/TableOfContents-GCFA Exam--81657105">
 <pre>open</pre>
 </div>
-<div created="20170615100925086" modified="20170622095856531" title="$:/state/toc/TableOfContents-SANS FOR508--81657105">
-<pre>close</pre>
+<div created="20170615100925086" modified="20170626074558423" title="$:/state/toc/TableOfContents-SANS FOR508--81657105">
+<pre>open</pre>
 </div>
 <div created="20170615142532870" modified="20170616123423597" title="$:/state/toc/TableOfContents-Tools--81657105">
 <pre>close</pre>
+</div>
+<div created="20170626074557104" modified="20170626074557104" title="$:/state/toc/TableOfContents/Cheat sheets-Volatility Cheat Sheet--81657105">
+<pre>open</pre>
 </div>
 <div created="20170616115355801" modified="20170616132354348" title="$:/state/toc/TableOfContents/SANS FOR508-Anti-Forensics Detection--81657105">
 <pre>close</pre>
@@ -8683,8 +8688,8 @@ Error message and password prompt
 <div created="20170616123647044" modified="20170616135625628" title="$:/state/toc/TableOfContents/SANS FOR508-References--81657105">
 <pre>close</pre>
 </div>
-<div created="20170615135053570" modified="20170622095737085" title="$:/state/toc/TableOfContents/SANS FOR508-Timeline Analysis--81657105">
-<pre>close</pre>
+<div created="20170615135053570" modified="20170626081037940" title="$:/state/toc/TableOfContents/SANS FOR508-Timeline Analysis--81657105">
+<pre>open</pre>
 </div>
 <div created="20170616123439644" modified="20170616123439644" title="$:/state/toc/TableOfContents/SANS FOR508-Tools--81657105">
 <pre>open</pre>
@@ -8701,7 +8706,7 @@ Error message and password prompt
 <div created="20170615144442850" modified="20170616094800637" title="$:/state/toc/TableOfContents/Tools-SuperTimeline--81657105">
 <pre>open</pre>
 </div>
-<div list="[[Volatile Artifact Analysis]] [[Volatile Data Collection]] [[Volatility Cheat Sheet]] [[Processes and DLLs]] [[Image identification]]" title="$:/StoryList">
+<div list="[[Super Timeline Creation]] Analisi [[Volatile Artifact Analysis]] [[Volatile Data Collection]] [[Volatility Cheat Sheet]] [[Processes and DLLs]] [[Image identification]]" title="$:/StoryList">
 <pre></pre>
 </div>
 <div created="20170615095643495" list="$:/core/ui/SideBar/Open $:/core/ui/SideBar/Recent $:/core/ui/SideBar/Tools $:/core/ui/SideBar/More" modified="20170615095643495" title="$:/tags/SideBar">
@@ -11213,7 +11218,7 @@ The EXCEL TEMPLATE can be downloaded here: https://blogs.sans.org/computer-foren
 * https://digital-forensics.sans.org/blog/2012/01/25/digital-forensic-sifting-colorized-super-timeline-template-for-log2timeline-output-files
 </pre>
 </div>
-<div created="20170616070737485" modified="20170616071436200" tags="[[Super Timeline]]" title="Super Timeline Creation">
+<div created="20170616070737485" modified="20170626091558759" tags="[[Super Timeline]]" title="Super Timeline Creation">
 <pre>!! Ensure evidence is mounted
 ```
 cd /mnt/windows_mount
@@ -11241,7 +11246,7 @@ cd /cases/win7-32-nromanoff-c-drive
 
 !! Filter the timeline using psort.py
 ```
-psort.py -z &quot;UCT&quot; -o L2tcsv win7-32-nromanoff-plaso.dump &quot;date &gt; '2012-04-03 00:00:00' AND date &lt; '2012-04-07 00:00:00'&quot; &gt; plaso.csv
+psort.py -z &quot;UCT&quot; -o L2tcsv win7-32-nromanoff-plaso.dump &quot;date &gt; '2012-04-03 00:00:00' AND date &lt; '2012-04-07 00:00:00'&quot; -w plaso.csv
 ```
 
 !! Filter data using grep and applying the whitelist

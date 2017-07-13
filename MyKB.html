@@ -196,6 +196,8 @@ Error message and password prompt
 
 <li>$:/state/toc/TableOfContents-Tools--81657105</li>
 
+<li>$:/state/toc/TableOfContents/Cheat sheets-Volatility Cheat Sheet--1372903757</li>
+
 <li>$:/state/toc/TableOfContents/Cheat sheets-Volatility Cheat Sheet--81657105</li>
 
 <li>$:/state/toc/TableOfContents/SANS FOR508-Anti-Forensics Detection--81657105</li>
@@ -252,11 +254,15 @@ Error message and password prompt
 
 <li>Command Line Reference</li>
 
+<li>Draft of 'Command Line Reference'</li>
+
 <li>Evolution of Windows Filesystems</li>
 
 <li>Extract filesystem bodyfile from VirtualBox VM</li>
 
 <li>Extract memory dump from VirtualBox VM</li>
+
+<li>Extract timeline from NTFS MFT</li>
 
 <li>File System Focused</li>
 
@@ -8682,6 +8688,9 @@ Error message and password prompt
 <div created="20170615142532870" modified="20170616123423597" title="$:/state/toc/TableOfContents-Tools--81657105">
 <pre>close</pre>
 </div>
+<div created="20170713095732457" modified="20170713095733288" title="$:/state/toc/TableOfContents/Cheat sheets-Volatility Cheat Sheet--1372903757">
+<pre>close</pre>
+</div>
 <div created="20170626074557104" modified="20170626074557104" title="$:/state/toc/TableOfContents/Cheat sheets-Volatility Cheat Sheet--81657105">
 <pre>open</pre>
 </div>
@@ -8694,8 +8703,8 @@ Error message and password prompt
 <div created="20170615140912024" modified="20170621143255570" title="$:/state/toc/TableOfContents/SANS FOR508-Memory Forensics--81657105">
 <pre>open</pre>
 </div>
-<div created="20170616123647044" modified="20170616135625628" title="$:/state/toc/TableOfContents/SANS FOR508-References--81657105">
-<pre>close</pre>
+<div created="20170616123647044" modified="20170713095921610" title="$:/state/toc/TableOfContents/SANS FOR508-References--81657105">
+<pre>open</pre>
 </div>
 <div created="20170615135053570" modified="20170626081037940" title="$:/state/toc/TableOfContents/SANS FOR508-Timeline Analysis--81657105">
 <pre>open</pre>
@@ -8715,7 +8724,7 @@ Error message and password prompt
 <div created="20170615144442850" modified="20170616094800637" title="$:/state/toc/TableOfContents/Tools-SuperTimeline--81657105">
 <pre>open</pre>
 </div>
-<div list="[[Command Line Reference]] SuperTimeline [[Windows Security Log Events]] [[Filesystem and Memory Timeline Creation]] [[Windows Time Rules]] NTFS [[Super Timeline Creation]] [[InfoSec KB]] [[GCFA Exam]] [[Certification Overview]]" title="$:/StoryList">
+<div list="[[Draft of 'Command Line Reference']] [[InfoSec KB]] [[Cheat sheets]] [[Extract timeline from NTFS MFT]]" title="$:/StoryList">
 <pre></pre>
 </div>
 <div created="20170615095643495" list="$:/core/ui/SideBar/Open $:/core/ui/SideBar/Recent $:/core/ui/SideBar/Tools $:/core/ui/SideBar/More" modified="20170615095643495" title="$:/tags/SideBar">
@@ -9602,6 +9611,337 @@ ls | pf -pipe -csv &gt;/cases/prefetch.csv
 ```
 </pre>
 </div>
+<div created="20170616090437363" draft.of="Command Line Reference" draft.title="Command Line Reference" modified="20170713095929867" tags="Tools" title="Draft of 'Command Line Reference'">
+<pre>!Basic Linux Commands:
+
+
+```
+
+Change your shell prompt:          export PS1='SIFT\$ '
+What's my IP address?:             ip addr
+Search mounted image for file:     find /mnt/windows_mount -name spinlock.exe
+
+Count the number of lines...
+... in a file:                     wc -l timeline.csv
+... in your output:                ls | wc -l
+
+```
+
+
+!Mounting Images From E01 files
+
+```
+cd /cases/xp-tdungan-c-drive
+ewfmount xp-tdungan-c-drive.E01 /mnt/ewf_mount
+mount -o ro,loop,show_sys_files,streams_interface=windows /mnt/ewf_mount/ewf1 /mnt/windows_mount
+```
+
+in some case, you need to specify the correct offset:
+
+```
+mount -o ro,loop,show_sys_files,streams_interface=windows,,offset=32256 /mnt/ewf_mount/ewf1 /mnt/windows_mount
+```
+ou can easily calculate the byte offset by running the sleuthkit mmls command against the raw disk image to find the sector starting location and multiplying by 512 bytes (or the sector size listed in the mmls output):
+
+```
+DOS Partition Table
+Offset Sector: 0
+Units are in 512-byte sectors
+
+      Slot      Start        End          Length       Description
+000:  Meta      0000000000   0000000000   0000000001   Primary Table (#0)
+001:  -------   0000000000   0000000062   0000000063   Unallocated
+002:  000:000   0000000063   0035551844   0035551782   NTFS / exFAT (0x07)
+003:  -------   0035551845   0035567909   0000016065   Unallocated
+```
+
+offset = 63 sectors * 512 byte per sector = 32256 
+
+Commentary:
+-- You must be in the directory with the E01 files for ewfmount to work
+-- If you want to stop using the image, you can unmount everything:
+
+```
+umount /mnt/windows_mount
+umount /mnt/ewf_mount
+```
+
+
+
+!Interacting With Volume Shadows
+
+
+1) Use ewfmount to create raw image
+
+```
+cd /cases/win7-32-nromanoff-c-drive/
+ewfmount win7-32-nromanoff-c-drive.E01 /mnt/ewf_mount2
+```
+
+2) View available shadows
+
+```
+vshadowinfo /mnt/ewf_mount2/ewf1
+```
+
+3) Use vshadowmount to make raw images of shadows
+
+```
+vshadowmount /mnt/ewf_mount2/ewf1 /mnt/vss
+```
+
+4a) Mount a single shadow volume
+
+```
+mount -o ro,loop,show_sys_files,streams_interface=windows /mnt/vss/vss4 /mnt/shadow_mount/vss4
+```
+
+4b) Or mount all volume shadows at the same time:
+
+```
+cd /mnt/vss
+for file in *; do
+    mount -o ro,loop,show_sys_files,streams_interface=windows /mnt/vss/$file /mnt/shadow_mount/$file
+done
+```
+
+5) Compare the same file across multiple volumes
+
+```
+cd /mnt/shadow_mount
+ls -l */Windows/AppCompat/Programs/RecentFileCache.bcf
+```
+
+6) Unmount everything when done
+
+```
+cd /mnt/shadow_mount
+for file in *; do umount $file; done
+umount /mnt/vss
+umount /mnt/ewf_mount2
+```
+
+!Mounting Images With F-Response
+
+1) Connect to target IP with username and password
+
+```
+f-response-accel-lin -s 172.16.87.131 -n sansforensics -p forensics1234
+```
+
+2) List available targets
+
+```
+iscsiadm -m node
+```
+3) Connect to target disk
+
+```
+f-response-accel-lin -l iqn.&lt;whatever&gt;:disk-0
+```
+4) See attached disks
+
+```
+fdisk -l
+```
+
+5) Mount target partition (assuming disk is /dev/sdc)
+
+```
+mount -o ro,show_sys_files,streams_interface=windows /dev/sdc1 /mnt/windows_mount2
+```
+6) Connect to target memory
+
+```
+f-response-accel-lin -l iqn.&lt;whatever&gt;:pmem
+```
+
+7) Image remote memory (assuming it's attached as /dev/sdd)
+
+```
+dd if=/dev/sdd of=/cases/memory.img
+```
+
+8) Disconnect from memory
+
+```
+f-response-accel-lin -u iqn.&lt;whatever&gt;:pmem
+```
+
+9) Unmount and disconnect from remote disk
+
+```
+umount /mnt/windows_mount2
+f-response-accel-lin -u iqn.&lt;whatever&gt;:disk-0
+```
+10) Clear ISCSI targets
+
+```
+iscsiadm -m node -o delete
+```
+
+!Memory Analysis Prep
+
+Unzip all sample memory images
+
+```
+cd /cases/example-memory-images
+for file in *.zip; do unzip -qq $file; done
+```
+
+Set environment variables to save typing
+
+```
+export VOLATILITY_PROFILE=WinXPSP3x86
+export VOLATILITY_LOCATION=file:///cases/example-memory-images/stuxnet.img
+```
+
+Get rid of environment variables when you're done
+
+```
+unset VOLATILITY_LOCATION
+unset VOLATILITY_PROFILE
+```
+
+!Volatility CLKF
+  
+Reduce psscan output and sort by start time
+
+```
+vol.py -f sobig.img psscan | sort -k2,8 -u | sort -k6,7
+```
+
+Commentary:
+-- &quot;sort -k2,8 -u&quot; removes entries that are duplicated (ignoring the memory offset in field #1)
+-- &quot;sort -k6,7&quot; sorts the results by start date/time
+  
+
+Search handles for a list of &quot;known-bads&quot; from file known-bads.txt
+
+```
+vol.py -f zeus.img handles -t Mutant | grep -f known-bads.txt
+```
+
+Commentary:
+-- known-bads.txt should contain one pattern per line
+-- Use the same technique with dlllist, modscan, etc
+  
+
+Sort output paths to make non-standard entries easier to see
+
+```
+vol.py -f conficker.img svcscan | grep Binary | sort -u 
+vol.py -f TDSS.img modscan | sort -k5
+```
+
+Use connscan to spot suspicious connections, find PIDs in psscan output
+
+```
+vol.py -f xp-tdungan-memory-raw.001 connscan
+vol.py -f xp-tdungan-memory-raw.001 psscan | egrep '(3780|3296)' | sort -k2,8 -u
+```
+
+Use tee to save output from long running plugins while viewing output
+
+```
+vol.py -f zeus.img apihooks | tee zeus-apihooks-output | less
+```
+
+Find injected segments with PE headers, output process name
+
+```
+vol.py -f stuxnet.img malfind -D /cases/malfind-dump | grep -B4 MZ | grep Process
+```
+
+! Sleuthkit Tools from Byte Offset to Filename
+
+1) Use Bulk Extractor or string searching to find and interesting byte offset
+(we'll use a credit card hit at byte offset 1619706)
+
+2) Run fsstat to get cluster size
+
+```
+fsstat xp-tdungan-c-drive.E01
+```
+
+3) Divide byte offset by cluster size to get cluster number
+
+```
+expr 1619706 / 4096
+```
+
+4) Use blk* tools to see cluster content, allocation status
+
+```
+blkstat xp-tdungan-c-drive.E01 395
+blkcat -h  xp-tdungan-c-drive.E01 395 | less
+```
+5) ifind gets you the MFT record number
+
+```
+ifind -d 395 xp-tdungan-c-drive.E01
+```
+
+6) istat shows you file detail, icat to recover file content
+
+```
+istat xp-tdungan-c-drive.E01 313
+icat xp-tdungan-c-drive.E01 313 &gt;/tmp/recovered.xlsx
+```
+
+7) ffind shows full file path
+
+```
+ffind xp-tdungan-c-drive.E01 313
+```
+
+These steps can be combined into a single, ridiculous command line
+
+```
+ffind xp-tdungan-c-drive.E01 $(ifind -d $((1619706/4096)) xp-tdungan-c-drive.E01)
+```
+Commentary:
+-- $((1619706/4096)) is how you do math in the Linux shell
+-- $(ifind ...) runs the ifind command and subsitutes the output into the ffind command
+
+
+! Sleuthkit Tools and Alternate Data Streams
+
+1) &quot;fls ... | grep ...&quot; to find all alternate data streams in image
+
+```
+fls -r -p xp-tdungan-c-drive.E01 | grep ':.*:'
+```
+
+2) Use icat to dump specific alternate data streams
+
+```
+icat xp-tdungan-c-drive.E01 5237-128-6
+```
+
+! Working With Directories of Files
+
+Use exiftool to parse LNK files, generate a histogram of link paths
+
+```
+exiftool -csv -LocalBasePath * | cut -d, -f2 | sort | uniq -c | sort -n -r
+```
+
+Look at the first bytes of (Prefetch) files to generate a foremost signature
+
+```
+cd /mnt/windows_mount/WINDOWS/Prefetch
+for file in *.pf; do xxd $file | head -1; done
+```
+
+Run TZworks Prefetch parser on directory, generate CSV report
+
+```
+cd /mnt/windows_mount/WINDOWS/Prefetch
+ls | pf -pipe -csv &gt;/cases/prefetch.csv
+```
+</pre>
+</div>
 <div created="20170616112642334" modified="20170616114935746" tags="[[Anti-Forensics Detection]]" title="Evolution of Windows Filesystems">
 <pre>* FAT12/16: MS-DOS, Win95/98/NT/2000
 * FAT32: Win95,Win2000,WinXP/2003/Vista/Win7/Win8/Win10
@@ -9684,6 +10024,32 @@ size=0x40000000;off=0x720;head -c $(($size+$off)) dump.elf|tail -c +$(($off+1)) 
 
 ```
 volatility -f dump.raw imageinfo
+```</pre>
+</div>
+<div created="20170713095746074" modified="20170713100250754" tags="[[Cheat sheets]]" title="Extract timeline from NTFS MFT">
+<pre>1. Find the correct offset with mmls:
+
+```
+DOS Partition Table
+Offset Sector: 0
+Units are in 512-byte sectors
+
+      Slot      Start        End          Length       Description
+000:  Meta      0000000000   0000000000   0000000001   Primary Table (#0)
+001:  -------   0000000000   0000000062   0000000063   Unallocated
+002:  000:000   0000000063   0035551844   0035551782   NTFS / exFAT (0x07)   &lt;------
+003:  -------   0035551845   0035567909   0000016065   Unallocated
+```
+2. Extract MFT with icat:
+
+```
+icat -o 63 image.E01 0 &gt; mft.raw
+```
+
+3. Parse the MFT with analyzeMFT:
+
+```
+analyzeMFT.py -f mft.raw -o mftanalyzed.csv
 ```</pre>
 </div>
 <div created="20170615143028906" modified="20170615143035953" tags="Tools" title="File System Focused">
